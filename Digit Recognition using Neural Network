@@ -1,0 +1,207 @@
+#Digit Recognition using Neural Network
+
+
+**1. Importing necessary modules**
+
+All the modules that we will require for training our model will first be imported. There are already certain datasets in the Keras library, and MNIST is one of them.  The training data, its labels, as well as the testing data and its labels, are returned to us by the mnist.load_data() method.
+
+import tensorflow as tf
+from tensorflow import keras
+import matplotlib.pyplot as plt
+%matplotlib inline
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+
+#from Keras loading the MNIST dataset
+#Splitting into train and test
+(x_train,y_train),(x_test,y_test)=keras.datasets.mnist.load_data()
+
+**2.Preprocess the data**
+
+We must execute some operations and process the data in order to prepare it for our neural network because the image data cannot be supplied straight into the model. 
+
+
+
+# sample is a 28x28 pixel image
+x_train.shape
+
+# data Exploration
+y_train.shape
+
+len(x_train)
+
+len(x_test)
+
+plt.matshow(x_train[1])
+
+# Show first 6 data
+y_train[:6]
+
+**3. Flattening the training data and testing data**
+
+Flattening our training dataset to make the training data(28x28) into a single column(array)
+
+*2-dimensional array into a single array*
+
+#flattening x_train
+x_train.shape #before flattening
+
+#after flattening x_train
+x_trainf=x_train.reshape(len(x_train),28*28)
+x_trainf.shape
+
+#flattening x_test
+x_test.shape #before flattening 
+
+#after flattening x_test
+x_testf=x_test.reshape(len(x_test),28*28) # after flatting
+x_testf.shape
+
+**4. Creating the Neural network**
+
+# Setting up the layers of the Neural  Network
+model = keras.Sequential([
+            keras.layers.Dense(10,input_shape=(784,), activation='sigmoid'),  
+            keras.layers.Dense(50, activation='relu'), 
+            keras.layers.Dense(50, activation='relu'), 
+            keras.layers.Dense(10, activation='sigmoid')])
+
+# Compiling the Neural Network
+model.compile(optimizer='adam',  loss = 'sparse_categorical_crossentropy', metrics=['accuracy'])
+
+model.fit(x_trainf,y_train,batch_size=20,epochs=10)
+
+_,accuracy = model.evaluate(x_trainf, y_train)
+print('Accuracy: %.2f' % (accuracy*100))
+
+
+**5.Scaling the values** 
+
+#to improve the accuracy - scaling the values 
+x_train=x_train/255
+x_test=x_test/255
+
+x_train_s=x_train.reshape(len(x_train),28*28)
+x_train_s.shape
+
+x_test_s=x_test.reshape(len(x_test),28*28) # after flatting
+x_test_s.shape
+
+#after scaling 
+model1 = keras.Sequential([
+            keras.layers.Dense(10,input_shape=(784,), activation='sigmoid'),  
+            keras.layers.Dense(50, activation='relu'), 
+            keras.layers.Dense(50, activation='relu'), 
+            keras.layers.Dense(10, activation='sigmoid')])
+
+# Compiling the Neural Network after scaling the value
+model1.compile(optimizer='adam',  loss = 'sparse_categorical_crossentropy', metrics=['accuracy'])
+
+**6.Train the model**
+
+The model.fit() function of Keras will start the training of the model. It takes the training data, validation data, epochs, and batch size.
+
+# Training the Neural Network
+history=model1.fit(x_train_s,y_train,batch_size=50,epochs=10,validation_data=(x_test_s, y_test))
+
+_,accuracy = model1.evaluate(x_train_s, y_train)
+print('Accuracy: %.2f' % (accuracy*100))
+
+**7. Evaluate the data**
+
+ used to evaluate how good our model works
+
+model1.evaluate(x_test_s,y_test)
+
+plt.matshow(x_test[1])
+
+predicts=model1.predict(x_test_s)
+predicts[1]
+
+np.argmax(predicts[1])
+
+predicts_lables=[np.argmax(i) for i in predicts]
+predicts_lables[:10]
+
+y_test[:5]
+
+**8. Evaluation metrics**
+
+conf_matrix=tf.math.confusion_matrix(labels=y_test,predictions=predicts_lables)
+conf_matrix
+
+# Heatmap using seaborn
+import seaborn as sn
+plt.figure(figsize=(15,6))
+sn.heatmap(conf_matrix,annot=True,fmt="d")
+plt.xlabel("predicted One")
+plt.ylabel("Actual One")
+
+from sklearn.metrics import classification_report
+print(classification_report(y_test,predicts_lables))
+
+predicts_lables[:10]
+
+fig, axes = plt.subplots(ncols=10, sharex=False,
+                         sharey=True, figsize=(20, 4))
+for i in range(10):
+    axes[i].set_title(predicts_lables[i])
+    axes[i].imshow(x_test[i], cmap='gray')
+    axes[i].get_xaxis().set_visible(False)
+    axes[i].get_yaxis().set_visible(False)
+plt.show()
+
+fig = plt.figure()
+for i in range(9):
+  plt.subplot(3,3,i+1)
+  plt.tight_layout()
+  plt.imshow(x_train[i], cmap='gray', interpolation='none')
+  plt.title("Digit: {}".format(y_train[i]))
+  plt.xticks([])
+  plt.yticks([])
+fig
+
+**7. Prediction**
+
+ # to see which we predicted correctly and which not
+correct_indices = np.nonzero(predicts_lables == y_test)[0]
+incorrect_indices = np.nonzero(predicts_lables != y_test)[0]
+print()
+print(len(correct_indices)," classified correctly")
+print(len(incorrect_indices)," classified incorrectly")
+
+
+# adapt figure size to accomodate 18 subplots
+plt.rcParams['figure.figsize'] = (10,15)
+
+figure_evaluation = plt.figure()
+
+# plot 9 correct predictions
+for i, correct in enumerate(correct_indices[:9]):
+    plt.subplot(6,3,i+1)
+    plt.imshow(x_test[correct].reshape(28,28), cmap='gray', interpolation='none')
+    plt.title(
+      "Predicted: {}, Truth: {}".format(predicts_lables[correct],
+                                        y_test[correct])) #9434 are classified correctly 
+    plt.xticks([])
+    plt.yticks([])
+
+# plot 9 incorrect predictions
+for i, incorrect in enumerate(incorrect_indices[:9]):
+    plt.subplot(6,3,i+10)
+    plt.imshow(x_test[incorrect].reshape(28,28), cmap='gray', interpolation='none')
+    plt.title(
+      "Predicted {}, Truth: {}".format(predicts_lables[incorrect], 
+                                       y_test[incorrect]))  #566 are classified incorreclty
+    plt.xticks([])
+    plt.yticks([])
+
+plt.figure(figsize = (5,5))
+plt.plot(history.history["loss"], label="loss")
+plt.plot(history.history["val_loss"], label="val_loss")
+plt.legend()
+
+plt.figure(figsize = (5,5))
+plt.plot(history.history["accuracy"], label="accuracy")
+plt.plot(history.history["val_accuracy"], label="val_accuracy")
+plt.legend()
